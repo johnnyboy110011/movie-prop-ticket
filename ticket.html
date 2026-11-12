@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transit Ticket Graphic</title>
+
+<style>
+  /* ===== Scene settings — edit these for each shot ===== */
+  /* Breathing background: fades between the two pinks and back */
+  @property --pink { syntax: "<color>"; inherits: true; initial-value: #d81d7a; }
+  :root {
+    --pink: #d81d7a;
+    --breath: 1s;          /* light → dark = 60 frames at 60fps; full breath = 2 × this */
+    --pink-text: #e2449c;
+    --ink: #414a52;
+    --gray: #b4b7bb;
+    animation: breathe var(--breath) ease-in-out infinite alternate;
+  }
+  @keyframes breathe {
+    from { --pink: #d81d7a; }   /* light */
+    to   { --pink: #7d1548; }   /* dark */
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #000; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+
+  /* Fixed 1154×2000 design canvas, scaled to fit the window */
+  #stage {
+    position: relative; width: 1154px; height: 2000px; flex: none;
+    background: var(--pink); overflow: hidden;
+    font-family: "Outfit", system-ui, sans-serif; color: var(--ink);
+    transform-origin: center center;
+  }
+  .abs { position: absolute; }
+  .center { transform: translateX(-50%); white-space: nowrap; text-align: center; }
+
+  .topglow {
+    left: -10%; top: -60px; width: 120%; height: 160px;
+    background: radial-gradient(ellipse at center, rgba(120,0,60,.18), transparent 70%);
+    filter: blur(20px);
+  }
+  .card { left: 0; top: 480px; width: 1154px; height: 908px; background: #fff; }
+  .notch {
+    left: 545px; top: 437px; width: 64px; height: 64px; border-radius: 50%;
+    background: var(--pink); border: 6px solid #fff;
+  }
+  .vline { left: 576px; top: 543px; width: 3px; height: 302px; background: #b9bcc0; }
+  .train { left: 541px; top: 642px; width: 72px; height: 90px; background: #fff; padding: 2px 0; }
+
+  .x1 { left: 288px; top: 560px; font-size: 128px; font-weight: 400; letter-spacing: -4px; line-height: 1; }
+  .label-lg { font-size: 54px; font-weight: 700; letter-spacing: .5px; line-height: 1; }
+  .pax { left: 288px; top: 703px; }
+  .adult { left: 288px; top: 797px; font-size: 42px; font-weight: 400; line-height: 1; }
+  .arrow { left: 808px; top: 612px; width: 116px; height: 80px; }
+  .oneway { left: 865px; top: 748px; }
+
+  .dots {
+    left: 6px; top: 908px; width: 1148px; height: 4px;
+    background-image: radial-gradient(circle, #a9acb0 1.6px, transparent 2px);
+    background-size: 15px 4px; background-repeat: repeat-x;
+  }
+  .ticketno { left: 577px; top: 946px; font-size: 50px; font-weight: 400; line-height: 1; color: #222; }
+  .ticketno b { font-weight: 700; color: var(--ink); }
+
+  .barcode { left: 70px; top: 1033px; width: 1012px; height: 160px; }
+  .active-box {
+    left: 431px; top: 1033px; width: 304px; height: 160px; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .active-box::before {
+    content: ""; position: absolute; inset: 0;
+    border: 18px dashed var(--gray); border-left-width: 0; border-right-width: 0;
+    clip-path: inset(0 0 0 0);
+  }
+  .active-box .inner {
+    position: absolute; left: 0; right: 0; top: 18px; bottom: 18px; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .active { font-family: "IBM Plex Sans", sans-serif; font-size: 70px; font-weight: 400; color: #d81d7a; letter-spacing: 1px;
+    animation: active-breathe var(--breath) ease-in-out infinite alternate; } /* 100% → 5% opacity, in sync with the background */
+  @keyframes active-breathe { from { opacity: 1; } to { opacity: 0.05; } }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .55 } }
+
+  .cap { font-size: 30px; font-weight: 700; color: #111; letter-spacing: .3px; line-height: 1; }
+  .val { font-size: 50px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .cap-l { left: 343px; top: 1248px; }
+  .val-l { left: 343px; top: 1297px; }
+  .cap-r { left: 920px; top: 1248px; }
+  .val-r { left: 920px; top: 1297px; }
+
+  /* ===== Header overlay ===== */
+  .logo {
+    left: 577px; top: 30px; width: 300px; height: 180px; transform: translateX(-50%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+  .logo img.knockout { filter: url(#knockout-white); }
+  .logo .placeholder {
+    width: 226px; height: 107px; margin-top: -24px; background: #000; color: #fff;
+    font-family: Arial, Helvetica, sans-serif; font-size: 62px; letter-spacing: 4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ticker { left: 0; top: 222px; width: 1154px; height: 80px; overflow: hidden; }
+  .ticker-track {
+    display: flex; width: max-content; white-space: nowrap;
+    animation: scroll var(--ticker-dur, 14s) linear infinite;
+  }
+  .ticker-track span {
+    font-family: "IBM Plex Sans", Arial, sans-serif; font-weight: 700; font-style: normal;
+    font-size: 58px; line-height: 80px; letter-spacing: -0.5px; color: #fff; padding: 0 0 0 14px;
+  }
+  .ticker-track .sep { padding: 0 110px; font-style: normal; }
+  @keyframes scroll { from { transform: translateX(0) } to { transform: translateX(-50%) } }
+  .info {
+    left: 577px; top: 336px; color: #fff; font-family: "Outfit", sans-serif; font-weight: 300;
+    font-size: 46px; letter-spacing: 0.5px; line-height: 1;
+  }
+  .bottom-text {
+    /* text area: 101–1058 wide, 1590–1767 tall; wraps and stays centred */
+    left: 101px; top: 1590px; width: 957px; height: 177px;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    color: #fff; font-family: "Outfit", sans-serif; font-weight: 300;
+    font-size: 56px; letter-spacing: 0.5px; line-height: 59px;
+    overflow-wrap: anywhere;
+  }
+
+  .countdown {
+    left: 577px; top: 1818px; color: #fff; font-size: 118px; font-weight: 300;
+    letter-spacing: 2px; line-height: 1; font-variant-numeric: tabular-nums;
+  }
+
+  /* Hidden scene editor; outside the scaled prop canvas */
+  #editorBackdrop { position: fixed; inset: 0; z-index: 10000; display: none;
+    background: rgba(0,0,0,.75); align-items: center; justify-content: center;
+    padding: 16px; font-family: system-ui, sans-serif; color: #20212a; }
+  #editorBackdrop.open { display: flex; }
+  #editorPanel { background: #fff; width: min(100%, 480px); max-height: min(88dvh, 850px);
+    overflow-y: auto; border-radius: 16px; padding: 20px; box-shadow: 0 16px 60px #0008; }
+  #editorPanel h2 { font-size: 22px; margin-bottom: 5px; }
+  #editorPanel p { font-size: 12px; color: #565b64; margin-bottom: 14px; }
+  #editorPanel label { display: block; font-size: 13px; font-weight: 650; margin: 12px 0 5px; }
+  #editorPanel input, #editorPanel textarea { display: block; width: 100%; border: 1px solid #b9bec8;
+    background: #fff; color: #171820; font: 16px system-ui, sans-serif; border-radius: 9px;
+    padding: 10px 11px; outline-offset: 2px; }
+  #editorPanel textarea { resize: vertical; min-height: 64px; }
+  #editorPanel .actions { display: flex; gap: 10px; margin-top: 22px; }
+  #editorPanel button { flex: 1; border: 0; border-radius: 10px; padding: 13px;
+    font-size: 16px; font-weight: 700; cursor: pointer; }
+  #editorSave { background: #d81d7a; color: #fff; }
+  #editorCancel { background: #e9e9ee; color: #282b33; }
+</style>
+</head>
+<body>
+<!-- White → transparent, keeps the logo's gold (214,163,74) -->
+<svg width="0" height="0" style="position:absolute">
+  <filter id="knockout-white" color-interpolation-filters="sRGB">
+    <feColorMatrix type="matrix" values="
+      0 0 0 0 0.839
+      0 0 0 0 0.639
+      0 0 0 0 0.290
+      0 0 -1.409 0 1.409"/>
+  </filter>
+</svg>
+<div id="stage">
+  <div class="abs topglow"></div>
+
+  <div class="abs logo" id="logo"></div>
+  <div class="abs ticker"><div class="ticker-track" id="ticker"></div></div>
+  <div class="abs center info" id="info"></div>
+  <div class="abs bottom-text" id="bottomText"></div>
+  <div class="abs card"></div>
+  <div class="abs notch"></div>
+
+  <div class="abs center x1">x1</div>
+  <div class="abs center label-lg pax">Passenger(s)</div>
+  <div class="abs center adult">1x Adult</div>
+
+  <div class="abs vline"></div>
+  <svg class="abs train" viewBox="0 0 72 90" fill="#b4b7bb">
+    <rect x="2" y="2" width="68" height="72" rx="16"/>
+    <rect x="12" y="14" width="20" height="22" rx="3" fill="#fff"/>
+    <rect x="40" y="14" width="20" height="22" rx="3" fill="#fff"/>
+    <circle cx="18" cy="56" r="6" fill="#fff"/>
+    <circle cx="54" cy="56" r="6" fill="#fff"/>
+    <path d="M14 74 L4 88 H68 L58 74 Z"/>
+  </svg>
+
+  <svg class="abs arrow" viewBox="0 0 116 80" fill="none" stroke="#414a52" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 40 H110 M76 6 L110 40 L76 74"/>
+  </svg>
+  <div class="abs center label-lg oneway">One-Way</div>
+
+  <div class="abs dots"></div>
+  <div class="abs center ticketno"><span id="ticketPrefix">movie prop 3:</span> <b id="ticketNo"></b></div>
+
+  <svg class="abs barcode" viewBox="0 0 1012 160" preserveAspectRatio="none" fill="#b4b7bb">
+    <!-- left block -->
+    <rect x="0" width="10" height="160"/><rect x="26" width="36" height="160"/>
+    <rect x="79" width="12" height="160"/><rect x="105" width="24" height="160"/>
+    <rect x="145" width="12" height="160"/><rect x="169" width="10" height="160"/>
+    <rect x="189" width="10" height="160"/><rect x="216" width="36" height="160"/>
+    <rect x="268" width="10" height="160"/><rect x="293" width="26" height="160"/>
+    <rect x="333" width="10" height="160"/>
+    <!-- right block -->
+    <rect x="684" width="26" height="160"/><rect x="725" width="10" height="160"/>
+    <rect x="750" width="10" height="160"/><rect x="768" width="10" height="160"/>
+    <rect x="796" width="36" height="160"/><rect x="848" width="10" height="160"/>
+    <rect x="874" width="24" height="160"/><rect x="912" width="12" height="160"/>
+    <rect x="940" width="10" height="160"/><rect x="964" width="12" height="160"/>
+    <rect x="990" width="22" height="160"/>
+  </svg>
+  <div class="abs active-box">
+    <div class="inner"><span class="active" id="activeText">prop 2</span></div>
+  </div>
+
+  <div class="abs center cap cap-l" id="dateLabel">CURRENT DATE &amp; TIME:</div>
+  <div class="abs center val val-l" id="now"></div>
+  <div class="abs center cap cap-r">TIME SINCE ACTIVATION:</div>
+  <div class="abs center val val-r" id="since"></div>
+
+  <div class="abs center countdown" id="remain"></div>
+</div>
+
+
+<!-- Double tap anywhere on the ticket to open. This editor is not part of the visible prop. -->
+<div id="editorBackdrop" aria-hidden="true">
+  <form id="editorPanel" autocomplete="off">
+    <h2>Edit movie prop</h2>
+    <p>Change any text, then tap Save. Changes stay on this device after closing the app.</p>
+    <label for="editScrolling">Scrolling text (movie prop 1)</label>
+    <input id="editScrolling" name="scrollingText" type="text">
+    <label for="editActive">Centre barcode text (prop 2)</label>
+    <input id="editActive" name="activeText" type="text">
+    <label for="editPrefix">Ticket label (movie prop 3)</label>
+    <input id="editPrefix" name="ticketPrefix" type="text">
+    <label for="editTicket">Ticket number (MZ68471843)</label>
+    <input id="editTicket" name="ticketNumber" type="text">
+    <label for="editAdditional">Header text (movie prop 4)</label>
+    <input id="editAdditional" name="additionalInfo" type="text">
+    <label for="editDateLabel">Current date &amp; time label</label>
+    <input id="editDateLabel" name="dateLabel" type="text">
+    <label for="editDateTime">Scripted current date &amp; time (starts here)</label>
+    <input id="editDateTime" name="startDateTime" type="datetime-local" step="1">
+    <label for="editBottom">Bottom information text</label>
+    <textarea id="editBottom" name="bottomText"></textarea>
+    <div class="actions"><button type="button" id="editorCancel">Cancel</button>
+      <button id="editorSave" type="submit">Save</button></div>
+  </form>
+</div>
+
+<script>
+  // ===== Shot values (scripted, NOT tied to the real clock) =====
+  const SHOT = {
+    ticketNumber: "MZ68471843",
+    startDateTime: "2026-11-11T16:39:00", // what "Current date & time" reads at frame 1
+    sinceActivationSec: 2*60 + 25,         // 00:02:25
+    remainingSec: 3*3600 + 57*60 + 34,     // 03:57:34
+    running: true,                         // false = frozen still frame
+
+    // Header overlay
+    logoSrc: "",                // e.g. "logo.webp" (file next to this page). Empty = train placeholder logo
+    logoKnockoutWhite: false,   // true only if a logo has a solid white background (gold logo only)
+    scrollingText: " movie prop 1",
+    tickerSeconds: 14,          // time for one full loop; lower = faster
+    additionalInfo: "movie prop 4 ",
+    bottomText: "Additional Information: Please refer to this section for further details and any relevant information."   // text above the countdown; wraps and shrinks to fit
+  };
+
+  // Prop editor settings are stored locally; the scripted clock never uses real time.
+  SHOT.activeText = "prop 2";
+  SHOT.ticketPrefix = "movie prop 3:";
+  SHOT.dateLabel = "CURRENT DATE & TIME:";
+  const EDIT_KEYS = ["scrollingText", "activeText", "ticketPrefix", "ticketNumber",
+    "additionalInfo", "dateLabel", "startDateTime", "bottomText"];
+  const SAVE_KEY = "movie-prop-ticket-scene-v1";
+  try {
+    const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || "{}");
+    if (saved && typeof saved === "object") {
+      for (const key of EDIT_KEYS) {
+        if (typeof saved[key] === "string") SHOT[key] = saved[key];
+      }
+    }
+  } catch (e) { /* Storage may be disabled; scene still works. */ }
+  document.getElementById("activeText").textContent = SHOT.activeText;
+  document.getElementById("ticketPrefix").textContent = SHOT.ticketPrefix;
+  document.getElementById("dateLabel").textContent = SHOT.dateLabel;
+
+  // Logo
+  const logoEl = document.getElementById("logo");
+  logoEl.innerHTML = SHOT.logoSrc
+    ? `<img src="${SHOT.logoSrc}" alt=""${SHOT.logoKnockoutWhite ? ' class="knockout"' : ''}>`
+    : `<svg class="train-logo" viewBox="0 0 160 160" width="150" height="150" style="margin-top:-24px">
+         <circle cx="80" cy="80" r="74" fill="none" stroke="#fff" stroke-width="7"/>
+         <!-- train body -->
+         <rect x="44" y="30" width="72" height="80" rx="18" fill="#fff"/>
+         <!-- roof sign -->
+         <rect x="64" y="38" width="32" height="7" rx="3.5" style="fill:var(--pink)"/>
+         <!-- windscreen -->
+         <rect x="53" y="52" width="54" height="26" rx="5" style="fill:var(--pink)"/>
+         <line x1="80" y1="52" x2="80" y2="78" stroke="#fff" stroke-width="4"/>
+         <!-- headlights -->
+         <circle cx="60" cy="94" r="6" style="fill:var(--pink)"/>
+         <circle cx="100" cy="94" r="6" style="fill:var(--pink)"/>
+         <!-- legs + rails -->
+         <path d="M58 110 L46 132 M102 110 L114 132" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+         <line x1="52" y1="122" x2="108" y2="122" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+       </svg>`;
+
+  // Scrolling ticker: repeat enough copies to fill, then duplicate for a seamless loop
+  const ticker = document.getElementById("ticker");
+  const unit = `<span>${escapeHtml(SHOT.scrollingText)}</span><span class="sep">•</span>`;
+  ticker.innerHTML = unit.repeat(4) + unit.repeat(4);
+  ticker.style.setProperty("--ticker-dur", SHOT.tickerSeconds + "s");
+
+  // Bottom text: starts at 56px and shrinks until it fits inside its box
+  function setInfo(text) {
+    const box = document.getElementById("bottomText");
+    box.innerHTML = "<span></span>";
+    const span = box.firstChild;
+    span.textContent = text;
+    let size = 56;
+    box.style.fontSize = size + "px"; box.style.lineHeight = Math.round(size * 1.05) + "px";
+    while (span.offsetHeight > box.clientHeight && size > 20) {
+      size -= 1;
+      box.style.fontSize = size + "px"; box.style.lineHeight = Math.round(size * 1.05) + "px";
+    }
+  }
+  document.getElementById("info").textContent = SHOT.additionalInfo;
+  setInfo(SHOT.bottomText);
+  document.fonts && document.fonts.ready.then(() => setInfo(SHOT.bottomText));
+
+  const pad = n => String(n).padStart(2, "0");
+  const hms = s => { s = Math.max(0, s); return `${pad(Math.floor(s/3600))}:${pad(Math.floor(s/60)%60)}:${pad(s%60)}`; };
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function fmtDate(d) {
+    let h = d.getHours(), ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
+    return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} ${pad(h)}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${ap}`;
+  }
+
+  document.getElementById("ticketNo").textContent = SHOT.ticketNumber;
+  let base = new Date(SHOT.startDateTime).getTime();
+  let t = 0;
+  function render() {
+    document.getElementById("now").textContent = fmtDate(new Date(base + t*1000));
+    document.getElementById("since").textContent = hms(SHOT.sinceActivationSec + t);
+    document.getElementById("remain").textContent = hms(SHOT.remainingSec - t);
+  }
+  render();
+  if (SHOT.running) setInterval(() => { t++; render(); }, 1000);
+
+  // Output size 2160×3750. Layout is drawn at 1154 wide and scaled up to 2160;
+  // the frame is then fitted to the window (1:1 when the window is 2160×3750).
+  const OUT_W = 2160, OUT_H = 3750;
+  function fit() {
+    const k = OUT_W / 1154;
+    const stage = document.getElementById("stage");
+    stage.style.height = (OUT_H / k) + "px";
+    const s = Math.min(innerWidth / OUT_W, innerHeight / OUT_H) * k;
+    stage.style.transform = `scale(${s})`;
+  }
+  addEventListener("resize", fit); fit();
+
+  // A quick double tap on the ticket opens a temporary editing panel.
+  const editorBackdrop = document.getElementById("editorBackdrop");
+  const editorForm = document.getElementById("editorPanel");
+  function openEditor() {
+    for (const key of EDIT_KEYS) {
+      const field = editorForm.elements.namedItem(key);
+      if (field) field.value = SHOT[key];
+    }
+    editorBackdrop.classList.add("open");
+    editorBackdrop.setAttribute("aria-hidden", "false");
+  }
+  function closeEditor() {
+    editorBackdrop.classList.remove("open");
+    editorBackdrop.setAttribute("aria-hidden", "true");
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+  document.getElementById("editorCancel").addEventListener("click", closeEditor);
+  editorBackdrop.addEventListener("click", event => {
+    if (event.target === editorBackdrop) closeEditor();
+  });
+  editorForm.addEventListener("submit", event => {
+    event.preventDefault();
+    const updates = {};
+    for (const key of EDIT_KEYS) {
+      const field = editorForm.elements.namedItem(key);
+      updates[key] = field ? field.value : SHOT[key];
+    }
+    if (!updates.startDateTime || Number.isNaN(new Date(updates.startDateTime).getTime())) {
+      alert("Please enter a valid scripted date and time.");
+      return;
+    }
+    Object.assign(SHOT, updates);
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(updates)); }
+    catch (e) { alert("Storage is unavailable. Changes will last until the app closes."); }
+    document.getElementById("activeText").textContent = SHOT.activeText;
+    document.getElementById("ticketPrefix").textContent = SHOT.ticketPrefix;
+    document.getElementById("ticketNo").textContent = SHOT.ticketNumber;
+    document.getElementById("dateLabel").textContent = SHOT.dateLabel;
+    document.getElementById("info").textContent = SHOT.additionalInfo;
+    const unitText = `<span>${escapeHtml(SHOT.scrollingText)}</span><span class="sep">•</span>`;
+    ticker.innerHTML = unitText.repeat(4) + unitText.repeat(4);
+    setInfo(SHOT.bottomText);
+    base = new Date(SHOT.startDateTime).getTime();
+    t = 0;
+    render();
+    closeEditor();
+  });
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, c => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[c]));
+  }
+  // Touchscreens use pointerup; desktop browsers also support a mouse double-click.
+  let lastTap = 0, lastX = 0, lastY = 0;
+  document.getElementById("stage").addEventListener("pointerup", event => {
+    if (event.pointerType === "mouse") return;
+    const nowTap = performance.now();
+    if (nowTap - lastTap < 420 && Math.hypot(event.clientX-lastX, event.clientY-lastY) < 65) {
+      openEditor(); lastTap = 0;
+    } else { lastTap = nowTap; lastX = event.clientX; lastY = event.clientY; }
+  });
+  document.getElementById("stage").addEventListener("dblclick", event => {
+    if (event.pointerType === "touch") return;
+    openEditor();
+  });
+
+</script>
+</body>
+</html>
